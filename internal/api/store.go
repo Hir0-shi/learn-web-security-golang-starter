@@ -7,10 +7,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/bootdotdev/learn-web-security/internal/database/dbgen"
 	"math"
 	"time"
-
-	"github.com/bootdotdev/learn-web-security/internal/database/dbgen"
 )
 
 const warehouseDailyQuota = 5
