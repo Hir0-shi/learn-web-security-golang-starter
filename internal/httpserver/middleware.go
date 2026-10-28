@@ -9,6 +9,7 @@ import (
 	"math"
 	"net"
 	"net/http"
+	"net/url"
 	"slices"
 	"strconv"
 	"strings"
@@ -247,4 +248,42 @@ func boolToInt64(value bool) int64 {
 		return 1
 	}
 	return 0
+}
+
+func validateRequestSource(appOrigin string, renderer *templates.Renderer) middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
+			if request.Method != http.MethodPost {
+				next.ServeHTTP(responseWriter, request)
+				return
+			}
+
+			origin := request.Header.Get("Origin")
+			if origin != "" {
+				// Origin is present it must match exactly, no fallback to Referer.
+				if origin == appOrigin {
+					next.ServeHTTP(responseWriter, request)
+					return
+				}
+				// Origin present but untrusted then reject immediately.
+				_ = httpx.RespondWithErrorPage(responseWriter, renderer, http.StatusForbidden, "Forbidden", "Invalid request source.")
+				return
+			}
+
+			// Origin absent fall back to Referer.
+			referer := request.Header.Get("Referer")
+			if referer != "" {
+				parsed, err := url.Parse(referer)
+				if err == nil {
+					refererOrigin := parsed.Scheme + "://" + parsed.Host
+					if refererOrigin == appOrigin {
+						next.ServeHTTP(responseWriter, request)
+						return
+					}
+				}
+			}
+
+			_ = httpx.RespondWithErrorPage(responseWriter, renderer, http.StatusForbidden, "Forbidden", "Invalid request source.")
+		})
+	}
 }
