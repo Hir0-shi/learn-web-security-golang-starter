@@ -238,6 +238,7 @@ func New(database *sql.DB, logger *logging.Logger, options Options) (*Applicatio
 		nosniff,
 		cspNonce,
 		recoverPanics(logger, renderer),
+		contentSecurityPolicy,
 	)
 	return &Application{Handler: handler, publicRoot: publicRoot}, nil
 }
